@@ -35,12 +35,19 @@ def main():
     png_files.sort()
 
     images = []
+    total_images = len(png_files)
+    progress_interval = total_images // 10
 
-    for png_file in png_files:
+    for index, png_file in enumerate(png_files):
         png_path = os.path.join(input_directory, png_file)
         img = Image.open(png_path)
         gif_img = process_image(img)
         images.append(gif_img)
+
+        # Progress reporting
+        if (index + 1) % progress_interval == 0:
+            progress = int(((index + 1) / total_images) * 100)
+            print(f"{progress}% completed")
 
     if images:
         images[0].save(
