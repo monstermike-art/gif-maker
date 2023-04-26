@@ -1,33 +1,61 @@
-from PIL import Image
 import os
+from PIL import Image
 
-def create_gif(png_files, output_gif, duration=100):
-    images = [Image.open(file) for file in png_files]
-    
-    # Save the images as a GIF
-    images[0].save(
-        output_gif,
-        save_all=True,
-        append_images=images[1:],
-        duration=duration,
-        loop=0,
-    )
+def process_image(img):
+    img = img.convert('RGBA')
+    width, height = img.size
+    gif_img = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+
+    for x in range(width):
+        for y in range(height):
+            pixel = img.getpixel((x, y))
+            r, g, b, a = pixel
+
+            if a < 128:
+                gif_img.putpixel((x, y), (255, 255, 255, 0))
+            else:
+                gif_img.putpixel((x, y), (r, g, b, 255))
+
+    # Create a palette with a transparent color
+    palette = bytearray([255, 255, 255, 0, 0, 0] * 86)  # 86 * 3 = 258
+    palette[0:3] = (255, 255, 255)
+    palette[3:6] = (0, 0, 0)
+
+    gif_img = gif_img.convert('P', palette=Image.ADAPTIVE, colors=256)
+    gif_img.info['transparency'] = 0  # Set the first color in the palette as transparent
+
+    return gif_img
+
 
 def main():
-    # Specify the directory containing the PNG images
-    png_dir = 'pngs'
-    png_files = [os.path.join(png_dir, f) for f in os.listdir(png_dir) if f.endswith('.png')]
-
-    # Sort the files to maintain the correct order
+    input_directory = 'pngs'
+    output_filename = 'output.gif'
+    
+    png_files = [f for f in os.listdir(input_directory) if f.endswith('.png')]
     png_files.sort()
 
-    # Specify the output GIF file
-    output_gif = 'output.gif'
+    images = []
 
-    # Set the duration between frames in milliseconds (e.g., 100 ms)
-    duration = 50
+    for png_file in png_files:
+        png_path = os.path.join(input_directory, png_file)
+        img = Image.open(png_path)
+        gif_img = process_image(img)
+        images.append(gif_img)
 
-    create_gif(png_files, output_gif, duration)
+    if images:
+        images[0].save(
+            output_filename,
+            save_all=True,
+            append_images=images[1:],
+            duration=50,
+            loop=0,
+            transparency=0,
+            disposal=2,
+            optimize=False
+        )
+        print(f"GIF saved as {output_filename}")
+    else:
+        print("No PNG files found in the 'pngs' directory")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
